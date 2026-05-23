@@ -7,7 +7,7 @@ const {
     updateRoom,
     deleteRoom
 } = require("../controllers/roomController");
-
+const upload = require("../middleware/uploadMiddleware");
 const router = express.Router();
 const {
     protect,
@@ -15,7 +15,7 @@ const {
 } = require("../middleware/authMiddleware");
 
 // ADD ROOM
-router.post("/", protect, admin, addRoom);
+router.post("/", protect, admin, upload.array("images", 5), addRoom);
 
 
 // GET ALL ROOMS

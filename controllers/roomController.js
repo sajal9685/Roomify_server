@@ -1,24 +1,67 @@
 const Room = require("../models/Room");
 
-
-// ADD ROOM
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
 const addRoom = async (req, res) => {
-    try {
+  try {
+    const {
+      title,
+      description,
+      location,
+      price,
+      category,
+      dealerName,
+      dealerPhone,
+      dealerVerified
+    } = req.body;
 
-        const room = await Room.create(req.body);
+    const uploadToCloudinary = (fileBuffer) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "roomify" },
+          (error, result) => {
+            if (result) resolve(result.secure_url);
+            else reject(error);
+          }
+        );
 
-        res.status(201).json({
-            message: "Room added successfully",
-            room
-        });
+        streamifier.createReadStream(fileBuffer).pipe(stream);
+      });
+    };
 
-    } catch (error) {
-        res.status(500).json({
-            message: error.message
-        });
+    const imageUrls = [];
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const imageUrl = await uploadToCloudinary(file.buffer);
+        imageUrls.push(imageUrl);
+      }
     }
-};
 
+    const room = await Room.create({
+      title,
+      description,
+      location,
+      price,
+      category,
+      images: imageUrls,
+      image: imageUrls[0],
+      dealerName,
+      dealerPhone,
+      dealerVerified: dealerVerified === "true"
+    });
+
+    res.status(201).json({
+      message: "Room added successfully",
+      room
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
 
 
 // GET ALL ROOMS
